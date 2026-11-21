@@ -1,27 +1,34 @@
 
 import streamlit as st
+from pathlib import Path
+
+# --------------------------------------------------
+# PAGE CONFIGURATION
+# --------------------------------------------------
 
 st.set_page_config(
-    page_title="RCulator",
-    page_icon="R",
-    layout="wide"
+    page_title="RCulator | Reynolds Number Calculator",
+    page_icon="",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# =====================================================
+LOGO_PATH = Path(__file__).parent / "assets" / "logo.png"
+
+# --------------------------------------------------
 # SESSION STATE
-# =====================================================
+# --------------------------------------------------
 
 defaults = {
     "system": "SI",
-    "previous_system": "SI",
-    "dark_mode": False,
     "simple_mode": True,
-    "diameter": 0.05,
-    "velocity": 2.0,
-    "temperature": 20.0,
-    "density": 998.2,
-    "viscosity": 0.001002,
+    "dark_mode": False,
     "fluid_mode": "Water",
+    "diameter": None,
+    "velocity": None,
+    "temperature": None,
+    "density": None,
+    "viscosity": None,
 }
 
 for key, value in defaults.items():
@@ -29,260 +36,286 @@ for key, value in defaults.items():
         st.session_state[key] = value
 
 
-# =====================================================
-# UNIT SWITCHING
-# =====================================================
+# --------------------------------------------------
+# UNIT CONVERSIONS
+# --------------------------------------------------
 
 def change_units():
-    old = st.session_state.previous_system
-    new = st.session_state.system
+    old_system = st.session_state.get("previous_system", "SI")
+    new_system = st.session_state.system
 
-    if old == new:
+    if old_system == new_system:
         return
 
-    if old == "SI" and new == "English":
-        st.session_state.diameter /= 0.0254
-        st.session_state.velocity /= 0.3048
-        st.session_state.temperature = (
-            st.session_state.temperature * 9 / 5 + 32
-        )
-        st.session_state.density /= 16.018463
-        st.session_state.viscosity /= 1.488164
+    # SI to English
+    if old_system == "SI" and new_system == "English":
+        if st.session_state.diameter is not None:
+            st.session_state.diameter /= 0.3048
 
-    elif old == "English" and new == "SI":
-        st.session_state.diameter *= 0.0254
-        st.session_state.velocity *= 0.3048
-        st.session_state.temperature = (
-            (st.session_state.temperature - 32) * 5 / 9
-        )
-        st.session_state.density *= 16.018463
-        st.session_state.viscosity *= 1.488164
+        if st.session_state.velocity is not None:
+            st.session_state.velocity /= 0.3048
 
-    st.session_state.previous_system = new
+        if st.session_state.temperature is not None:
+            st.session_state.temperature = (
+                st.session_state.temperature * 9 / 5
+            ) + 32
+
+        if st.session_state.density is not None:
+            st.session_state.density /= 16.018463
+
+        if st.session_state.viscosity is not None:
+            st.session_state.viscosity /= 47.88026
+
+    # English to SI
+    else:
+        if st.session_state.diameter is not None:
+            st.session_state.diameter *= 0.3048
+
+        if st.session_state.velocity is not None:
+            st.session_state.velocity *= 0.3048
+
+        if st.session_state.temperature is not None:
+            st.session_state.temperature = (
+                st.session_state.temperature - 32
+            ) * 5 / 9
+
+        if st.session_state.density is not None:
+            st.session_state.density *= 16.018463
+
+        if st.session_state.viscosity is not None:
+            st.session_state.viscosity *= 47.88026
+
+    st.session_state.previous_system = new_system
 
 
-# =====================================================
-# WATER PROPERTIES
-# =====================================================
+if "previous_system" not in st.session_state:
+    st.session_state.previous_system = st.session_state.system
 
-water_temps = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
-water_density = [
-    999.84, 999.70, 998.21, 995.65, 992.22,
-    988.04, 983.20, 977.76, 971.80, 965.31, 958.35
+# --------------------------------------------------
+# WATER PROPERTY DATA
+# Temperature in °C
+# Density in kg/m³
+# Dynamic viscosity in Pa·s
+# --------------------------------------------------
+
+water_data = [
+    (0, 999.84, 0.001792),
+    (5, 999.97, 0.001519),
+    (10, 999.70, 0.001307),
+    (15, 999.10, 0.001138),
+    (20, 998.21, 0.001002),
+    (25, 997.05, 0.000890),
+    (30, 995.65, 0.000798),
+    (35, 994.03, 0.000720),
+    (40, 992.22, 0.000653),
+    (45, 990.22, 0.000596),
+    (50, 988.04, 0.000547),
+    (55, 985.69, 0.000504),
+    (60, 983.20, 0.000467),
+    (65, 980.55, 0.000433),
+    (70, 977.76, 0.000404),
+    (75, 974.84, 0.000378),
+    (80, 971.79, 0.000355),
+    (85, 968.61, 0.000333),
+    (90, 965.31, 0.000315),
+    (95, 961.89, 0.000297),
+    (100, 958.35, 0.000282),
 ]
 
-water_viscosity = [
-    0.001792, 0.001307, 0.001002, 0.000798,
-    0.000653, 0.000547, 0.000466, 0.000404,
-    0.000355, 0.000315, 0.000282
-]
+
+def interpolate(temp, column):
+    if temp < water_data[0][0] or temp > water_data[-1][0]:
+        return None
+
+    for i in range(len(water_data) - 1):
+        t1 = water_data[i][0]
+        t2 = water_data[i + 1][0]
+
+        if t1 <= temp <= t2:
+            v1 = water_data[i][column]
+            v2 = water_data[i + 1][column]
+
+            return v1 + (v2 - v1) * (temp - t1) / (t2 - t1)
+
+    return None
 
 
-def interpolate(x, xs, ys):
-    if x <= xs[0]:
-        return ys[0]
-    if x >= xs[-1]:
-        return ys[-1]
-
-    for i in range(len(xs) - 1):
-        if xs[i] <= x <= xs[i + 1]:
-            fraction = (x - xs[i]) / (xs[i + 1] - xs[i])
-            return ys[i] + fraction * (ys[i + 1] - ys[i])
-
-    return ys[-1]
-
-
-# =====================================================
+# --------------------------------------------------
 # THEME
-# =====================================================
+# --------------------------------------------------
 
 if st.session_state.dark_mode:
-    colors = {
-        "bg": "#101827",
-        "panel": "#1B293D",
-        "input": "#213149",
-        "text": "#F1F5F9",
-        "muted": "#B2C0D1",
-        "accent": "#55B8F0",
-        "border": "#35465D",
-    }
+    bg = "#101827"
+    panel = "#192538"
+    text = "#F1F5F9"
+    muted = "#A7B4C5"
+    accent = "#38BDF8"
+    border = "#30445E"
+    input_bg = "#223249"
 else:
-    colors = {
-        "bg": "#F3F6FA",
-        "panel": "#FFFFFF",
-        "input": "#FFFFFF",
-        "text": "#172B45",
-        "muted": "#53657C",
-        "accent": "#087DBB",
-        "border": "#D5E0EB",
-    }
+    bg = "#F4F7FB"
+    panel = "#FFFFFF"
+    text = "#172B4D"
+    muted = "#60728A"
+    accent = "#087EBD"
+    border = "#DCE5EF"
+    input_bg = "#FFFFFF"
+
 
 st.markdown(
     f"""
     <style>
-    .stApp,
-    [data-testid="stAppViewContainer"] {{
-        background: {colors["bg"]} !important;
-        color: {colors["text"]} !important;
+    .stApp {{
+        background-color: {bg};
+        color: {text};
     }}
 
     [data-testid="stHeader"] {{
-        background: {colors["bg"]} !important;
+        background-color: {bg};
     }}
 
-    .block-container {{
-        max-width: 1200px;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
+    [data-testid="stSidebar"] {{
+        background-color: {panel};
     }}
 
-    /* Text */
-
-    .stApp h1, .stApp h2, .stApp h3,
-    .stApp h4, .stApp p, .stApp label,
-    .stApp [data-testid="stMarkdownContainer"] {{
-        color: {colors["text"]} !important;
+    h1, h2, h3, h4, p, label, span, div {{
+        color: inherit;
     }}
-
-    .stApp [data-testid="stCaptionContainer"],
-    .stApp small {{
-        color: {colors["muted"]} !important;
-    }}
-
-    /* Input fields */
-
-    [data-baseweb="input"] > div,
-    [data-baseweb="select"] > div {{
-        background: {colors["input"]} !important;
-        border: 1px solid {colors["border"]} !important;
-        border-radius: 8px !important;
-    }}
-
-    [data-baseweb="input"] input {{
-        color: {colors["text"]} !important;
-        -webkit-text-fill-color: {colors["text"]} !important;
-    }}
-
-    [data-baseweb="select"] *,
-    [data-baseweb="popover"] * {{
-        color: {colors["text"]} !important;
-    }}
-
-    [data-baseweb="popover"] ul {{
-        background: {colors["panel"]} !important;
-    }}
-
-    [data-testid="stNumberInput"] button {{
-        background: {colors["input"]} !important;
-        color: {colors["text"]} !important;
-        border-color: {colors["border"]} !important;
-    }}
-
-    /* Metrics */
-
-    [data-testid="stMetric"] {{
-        background: {colors["panel"]} !important;
-        border: 1px solid {colors["border"]} !important;
-        border-radius: 12px;
-        padding: 12px;
-    }}
-
-    [data-testid="stMetricLabel"],
-    [data-testid="stMetricLabel"] * {{
-        color: {colors["muted"]} !important;
-    }}
-
-    [data-testid="stMetricValue"],
-    [data-testid="stMetricValue"] * {{
-        color: {colors["text"]} !important;
-    }}
-
-    /* Containers */
-
-    [data-testid="stVerticalBlockBorderWrapper"] {{
-        background: {colors["panel"]} !important;
-        border-color: {colors["border"]} !important;
-        border-radius: 12px !important;
-    }}
-
-    /* Buttons */
-
-    .stButton button {{
-        background: {colors["panel"]} !important;
-        color: {colors["text"]} !important;
-        border-color: {colors["border"]} !important;
-        border-radius: 8px !important;
-    }}
-
-    /* RCulator styling */
 
     .brand {{
-        color: {colors["accent"]} !important;
-        font-size: 12px;
+        color: {accent};
+        font-size: 0.72rem;
         font-weight: 800;
-        letter-spacing: 2.5px;
+        letter-spacing: 2px;
+        margin-bottom: -12px;
     }}
 
     .subtitle {{
-        color: {colors["muted"]} !important;
-        font-size: 13px;
-        margin-top: -10px;
+        color: {muted};
+        font-size: 0.95rem;
+        margin-top: -12px;
     }}
 
-    .result-number {{
-        color: {colors["accent"]} !important;
-        font-size: clamp(32px, 5vw, 48px);
-        font-weight: 850;
-        letter-spacing: -1px;
+    .section-label {{
+        color: {muted};
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        margin-bottom: 8px;
+    }}
+
+    .result-card {{
+        background: {panel};
+        border: 1px solid {border};
+        border-radius: 16px;
+        padding: 22px;
+        margin-top: 10px;
     }}
 
     .result-label {{
-        color: {colors["muted"]} !important;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 1.5px;
+        color: {muted};
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 1.2px;
     }}
 
-    .simple-info {{
-        color: {colors["muted"]} !important;
-        font-size: 12px;
+    .result-number {{
+        color: {accent};
+        font-size: 2.4rem;
+        font-weight: 800;
+        margin: 4px 0;
+        overflow-wrap: anywhere;
+    }}
+
+    .result-regime {{
+        color: {text};
+        font-size: 1.2rem;
+        font-weight: 700;
+    }}
+
+    .info-card {{
+        background: {panel};
+        border: 1px solid {border};
+        border-radius: 12px;
+        padding: 14px;
+    }}
+
+    .small-muted {{
+        color: {muted};
+        font-size: 0.82rem;
+    }}
+
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="select"] > div {{
+        background-color: {input_bg};
+        border-color: {border};
+        border-radius: 10px;
+    }}
+
+    div[data-baseweb="input"] input {{
+        color: {text};
+    }}
+
+    div[data-baseweb="select"] div {{
+        color: {text};
+    }}
+
+    [data-testid="stMetric"] {{
+        background-color: {panel};
+        border: 1px solid {border};
+        padding: 15px;
+        border-radius: 12px;
+    }}
+
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricValue"] {{
+        color: {text};
+    }}
+
+    .stCaption {{
+        color: {muted};
+    }}
+
+    div.stButton > button {{
+        border-radius: 10px;
     }}
 
     hr {{
-        border-color: {colors["border"]} !important;
+        border-color: {border};
     }}
 
-    /* Phone layout */
-
-    @media (max-width: 640px) {{
-        .block-container {{
-            padding: 0.7rem 0.7rem 1.5rem 0.7rem;
-        }}
-    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
 
-# =====================================================
-# HEADER - CONTROLS HAVE THEIR OWN SPACE
-# =====================================================
+# --------------------------------------------------
+# HEADER
+# --------------------------------------------------
 
-st.markdown(
-    '<div class="brand">ENGINEERING CALCULATOR</div>',
-    unsafe_allow_html=True
+header1, header2, header3, header4 = st.columns(
+    [2.5, 1, 1, 1]
 )
 
-header1, header2, header3, header4 = st.columns([2.2, 1, 1, 1])
-
 with header1:
-    st.title("RCulator")
-    st.markdown(
-        '<div class="subtitle">Reynolds Number Calculator</div>',
-        unsafe_allow_html=True
-    )
+    logo_col, title_col = st.columns([1, 5])
+
+    with logo_col:
+        if LOGO_PATH.exists():
+            st.image(str(LOGO_PATH), width=65)
+
+    with title_col:
+        st.markdown(
+            '<div class="brand">ENGINEERING CALCULATOR</div>',
+            unsafe_allow_html=True
+        )
+        st.title("RCulator")
+        st.markdown(
+            '<div class="subtitle">Reynolds Number Calculator</div>',
+            unsafe_allow_html=True
+        )
 
 with header2:
     st.selectbox(
@@ -301,387 +334,400 @@ with header4:
 st.divider()
 
 
-# =====================================================
+# --------------------------------------------------
 # UNIT LABELS
-# =====================================================
+# --------------------------------------------------
 
-system = st.session_state.system
-
-if system == "SI":
-    d_unit = "m"
-    v_unit = "m/s"
-    t_unit = "°C"
-    rho_unit = "kg/m³"
-    mu_unit = "Pa·s"
+if st.session_state.system == "SI":
+    diameter_unit = "m"
+    velocity_unit = "m/s"
+    temperature_unit = "°C"
+    density_unit = "kg/m³"
+    viscosity_unit = "Pa·s"
 else:
-    d_unit = "in"
-    v_unit = "ft/s"
-    t_unit = "°F"
-    rho_unit = "lbm/ft³"
-    mu_unit = "lbm/(ft·s)"
+    diameter_unit = "ft"
+    velocity_unit = "ft/s"
+    temperature_unit = "°F"
+    density_unit = "lb/ft³"
+    viscosity_unit = "lb/(ft·s)"
 
 
-# =====================================================
-# SIMPLE MODE
-# =====================================================
+# --------------------------------------------------
+# INPUT SECTION
+# --------------------------------------------------
+
+st.markdown(
+    '<div class="section-label">CALCULATION INPUTS</div>',
+    unsafe_allow_html=True
+)
+
+# Fluid selection
+fluid_col, spacer_col = st.columns([1, 3])
+
+with fluid_col:
+    st.selectbox(
+        "Fluid Properties",
+        ["Water", "Custom Fluid"],
+        key="fluid_mode"
+    )
+
+
+# --------------------------------------------------
+# SIMPLE MODE INPUTS
+# --------------------------------------------------
 
 if st.session_state.simple_mode:
 
-    st.markdown("### Flow parameters")
-
-    # Five compact columns: all essential inputs in one row.
-    c1, c2, c3, c4, c5 = st.columns(5, gap="small")
+    c1, c2, c3 = st.columns(3)
 
     with c1:
-        diameter = st.number_input(
-            f"Diameter ({d_unit})",
-            min_value=0.000001,
-            format="%.5f",
-            key="diameter"
+        st.number_input(
+            f"Pipe Diameter ({diameter_unit})",
+            min_value=0.0,
+            value=None,
+            key="diameter",
+            placeholder="Enter diameter",
+            format="%.6f"
         )
 
     with c2:
-        velocity = st.number_input(
-            f"Velocity ({v_unit})",
-            min_value=0.000001,
-            format="%.5f",
-            key="velocity"
+        st.number_input(
+            f"Flow Velocity ({velocity_unit})",
+            min_value=0.0,
+            value=None,
+            key="velocity",
+            placeholder="Enter velocity",
+            format="%.6f"
         )
 
     with c3:
-        st.selectbox(
-            "Fluid",
-            ["Water", "Custom"],
-            key="fluid_mode"
+        if st.session_state.fluid_mode == "Water":
+            st.number_input(
+                f"Water Temperature ({temperature_unit})",
+                value=None,
+                key="temperature",
+                placeholder="Enter temperature",
+                format="%.2f"
+            )
+        else:
+            st.number_input(
+                f"Density ({density_unit})",
+                min_value=0.0,
+                value=None,
+                key="density",
+                placeholder="Enter density",
+                format="%.6f"
+            )
+
+    if st.session_state.fluid_mode == "Custom Fluid":
+        c4, c5 = st.columns(3)
+
+        with c4:
+            st.number_input(
+                f"Dynamic Viscosity ({viscosity_unit})",
+                min_value=0.0,
+                value=None,
+                key="viscosity",
+                placeholder="Enter viscosity",
+                format="%.8f"
+            )
+
+
+# --------------------------------------------------
+# FULL MODE INPUTS
+# --------------------------------------------------
+
+else:
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.number_input(
+            f"Pipe Diameter ({diameter_unit})",
+            min_value=0.0,
+            value=None,
+            key="diameter",
+            placeholder="Enter pipe diameter",
+            format="%.6f"
+        )
+
+    with c2:
+        st.number_input(
+            f"Flow Velocity ({velocity_unit})",
+            min_value=0.0,
+            value=None,
+            key="velocity",
+            placeholder="Enter flow velocity",
+            format="%.6f"
         )
 
     if st.session_state.fluid_mode == "Water":
 
-        with c4:
-            temperature = st.number_input(
-                f"Temperature ({t_unit})",
-                min_value=0.0 if system == "SI" else 32.0,
-                max_value=100.0 if system == "SI" else 212.0,
-                step=1.0,
-                key="temperature"
+        st.number_input(
+            f"Water Temperature ({temperature_unit})",
+            value=None,
+            key="temperature",
+            placeholder="Enter water temperature",
+            format="%.2f"
+        )
+
+    else:
+
+        c3, c4 = st.columns(2)
+
+        with c3:
+            st.number_input(
+                f"Density ({density_unit})",
+                min_value=0.0,
+                value=None,
+                key="density",
+                placeholder="Enter density",
+                format="%.6f"
             )
 
-        if system == "SI":
-            temp_c = temperature
+        with c4:
+            st.number_input(
+                f"Dynamic Viscosity ({viscosity_unit})",
+                min_value=0.0,
+                value=None,
+                key="viscosity",
+                placeholder="Enter viscosity",
+                format="%.8f"
+            )
+
+
+# --------------------------------------------------
+# FLUID PROPERTY CALCULATION
+# --------------------------------------------------
+
+rho_si = None
+mu_si = None
+
+if st.session_state.fluid_mode == "Water":
+
+    temp = st.session_state.temperature
+
+    if temp is not None:
+
+        if st.session_state.system == "SI":
+            temp_c = temp
         else:
-            temp_c = (temperature - 32) * 5 / 9
+            temp_c = (temp - 32) * 5 / 9
 
-        rho_si = interpolate(temp_c, water_temps, water_density)
-        mu_si = interpolate(temp_c, water_temps, water_viscosity)
+        rho_si = interpolate(temp_c, 1)
+        mu_si = interpolate(temp_c, 2)
 
-        if system == "SI":
+        if rho_si is None or mu_si is None:
+            st.warning(
+                "Water temperature must be between 0°C and 100°C "
+                "(32°F and 212°F)."
+            )
+
+else:
+
+    density = st.session_state.density
+    viscosity = st.session_state.viscosity
+
+    if density is not None and viscosity is not None:
+
+        if st.session_state.system == "SI":
+            rho_si = density
+            mu_si = viscosity
+        else:
+            rho_si = density * 16.018463
+            mu_si = viscosity * 47.88026
+
+
+# --------------------------------------------------
+# WATER PROPERTY DISPLAY
+# --------------------------------------------------
+
+if st.session_state.fluid_mode == "Water":
+
+    if rho_si is not None and mu_si is not None:
+
+        if st.session_state.system == "SI":
             rho_display = rho_si
             mu_display = mu_si
         else:
             rho_display = rho_si / 16.018463
-            mu_display = mu_si / 1.488164
+            mu_display = mu_si / 47.88026
 
-        with c5:
-            st.markdown("**Water properties**")
-            st.caption(f"ρ = {rho_display:.3f} {rho_unit}")
-            st.caption(f"μ = {mu_display:.6f} {mu_unit}")
+        st.caption(
+            f"Water density: {rho_display:.4f} {density_unit}  |  "
+            f"Dynamic viscosity: {mu_display:.8f} {viscosity_unit}"
+        )
 
+    elif st.session_state.temperature is None:
+        st.caption(
+            "Enter the water temperature to determine its density "
+            "and dynamic viscosity."
+        )
+
+
+# --------------------------------------------------
+# REYNOLDS NUMBER CALCULATION
+# --------------------------------------------------
+
+diameter = st.session_state.diameter
+velocity = st.session_state.velocity
+
+# Convert diameter and velocity into SI units
+if diameter is not None and velocity is not None:
+
+    if st.session_state.system == "SI":
+        diameter_m = diameter
+        velocity_m_s = velocity
     else:
-        with c4:
-            rho_display = st.number_input(
-                f"Density ({rho_unit})",
-                min_value=0.000001,
-                format="%.5f",
-                key="density"
-            )
+        diameter_m = diameter * 0.3048
+        velocity_m_s = velocity * 0.3048
 
-        with c5:
-            mu_display = st.number_input(
-                f"Viscosity ({mu_unit})",
-                min_value=0.000000001,
-                format="%.8f",
-                key="viscosity"
-            )
+else:
+    diameter_m = None
+    velocity_m_s = None
 
-        if system == "SI":
-            rho_si = rho_display
-            mu_si = mu_display
-        else:
-            rho_si = rho_display * 16.018463
-            mu_si = mu_display * 1.488164
 
-    # Convert dimensions to SI.
+valid = (
+    diameter_m is not None
+    and velocity_m_s is not None
+    and rho_si is not None
+    and mu_si is not None
+    and diameter_m > 0
+    and velocity_m_s > 0
+    and rho_si > 0
+    and mu_si > 0
+)
 
-    if system == "SI":
-        diameter_si = diameter
-        velocity_si = velocity
+st.divider()
+
+st.markdown(
+    '<div class="section-label">CALCULATION RESULT</div>',
+    unsafe_allow_html=True
+)
+
+
+# --------------------------------------------------
+# RESULT DISPLAY
+# --------------------------------------------------
+
+if valid:
+
+    reynolds = (
+        rho_si * velocity_m_s * diameter_m
+    ) / mu_si
+
+    if reynolds < 2300:
+        regime = "Laminar Flow"
+        explanation = "The flow is generally smooth and orderly."
+    elif reynolds <= 4000:
+        regime = "Transitional Flow"
+        explanation = "The flow is in the transition region."
     else:
-        diameter_si = diameter * 0.0254
-        velocity_si = velocity * 0.3048
+        regime = "Turbulent Flow"
+        explanation = "The flow is generally irregular and mixed."
 
-    valid = (
-        diameter_si > 0
-        and velocity_si > 0
-        and rho_si > 0
-        and mu_si > 0
-    )
+    result_col, regime_col = st.columns([1.5, 1])
 
-    if valid:
-        reynolds = rho_si * velocity_si * diameter_si / mu_si
+    with result_col:
+        st.markdown(
+            f"""
+            <div class="result-card">
+                <div class="result-label">REYNOLDS NUMBER</div>
+                <div class="result-number">{reynolds:,.2f}</div>
+                <div class="small-muted">Dimensionless quantity</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        if reynolds < 2300:
-            regime = "Laminar"
-            regime_range = "Re < 2,300"
-        elif reynolds <= 4000:
-            regime = "Transitional"
-            regime_range = "2,300–4,000"
-        else:
-            regime = "Turbulent"
-            regime_range = "Re > 4,000"
+    with regime_col:
+        st.markdown(
+            f"""
+            <div class="result-card">
+                <div class="result-label">FLOW REGIME</div>
+                <div class="result-regime">{regime}</div>
+                <div class="small-muted">{explanation}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    else:
-        reynolds = 0
-        regime = "Invalid inputs"
-        regime_range = "Check your values"
+    # Full mode details
+    if not st.session_state.simple_mode:
 
-    st.divider()
-    st.markdown("### Calculation result")
+        st.subheader("Calculation Details")
 
-    # Main result displayed side by side.
+        st.latex(
+            r"Re = \frac{\rho V D}{\mu}"
+        )
 
-    result1, result2 = st.columns([1.5, 1], gap="medium")
+        st.write("Substituting the SI values:")
 
-    with result1:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="result-label">REYNOLDS NUMBER</div>',
-                unsafe_allow_html=True
-            )
+        st.latex(
+            rf"Re = \frac{{({rho_si:.4f})({velocity_m_s:.5f})"
+            rf"({diameter_m:.5f})}}{{{mu_si:.8f}}}"
+        )
 
-            if valid:
-                st.markdown(
-                    f'<div class="result-number">{reynolds:,.2f}</div>',
-                    unsafe_allow_html=True
-                )
-                st.caption("Dimensionless")
-            else:
-                st.warning("Check your input values.")
+        st.latex(rf"Re = {reynolds:,.2f}")
 
-    with result2:
-        with st.container(border=True):
-            st.markdown("**FLOW REGIME**")
+        st.subheader("Flow Regime Guide")
 
-            if valid:
-                st.subheader(regime)
-                st.caption(regime_range)
-            else:
-                st.caption("Waiting for valid inputs")
+        g1, g2, g3 = st.columns(3)
 
-    # Compact flow reference, without additional cards.
+        with g1:
+            st.metric("Laminar", "Re < 2,300")
 
-    st.caption(
-        "FLOW GUIDE     •     LAMINAR: Re < 2,300"
-        "     •     TRANSITIONAL: 2,300–4,000"
-        "     •     TURBULENT: Re > 4,000"
-    )
+        with g2:
+            st.metric("Transitional", "2,300–4,000")
 
-    st.caption("RCulator | Reynolds Number Calculator")
-
-
-# =====================================================
-# FULL MODE
-# =====================================================
+        with g3:
+            st.metric("Turbulent", "Re > 4,000")
 
 else:
 
-    st.markdown("### Flow regime reference")
-
-    f1, f2, f3 = st.columns(3)
-
-    with f1:
-        with st.container(border=True):
-            st.markdown("**LAMINAR**")
-            st.markdown("Re < 2,300")
-            st.caption("Smooth, orderly flow.")
-
-    with f2:
-        with st.container(border=True):
-            st.markdown("**TRANSITIONAL**")
-            st.markdown("2,300–4,000")
-            st.caption("Unstable flow region.")
-
-    with f3:
-        with st.container(border=True):
-            st.markdown("**TURBULENT**")
-            st.markdown("Re > 4,000")
-            st.caption("Irregular, mixed flow.")
-
-    st.divider()
-    st.markdown("### Flow conditions")
-
-    left, right = st.columns(2, gap="large")
-
-    with left:
-        with st.container(border=True):
-            st.markdown("**Geometry and velocity**")
-
-            diameter = st.number_input(
-                f"Pipe diameter ({d_unit})",
-                min_value=0.000001,
-                format="%.5f",
-                key="diameter"
-            )
-
-            velocity = st.number_input(
-                f"Average velocity ({v_unit})",
-                min_value=0.000001,
-                format="%.5f",
-                key="velocity"
-            )
-
-    with right:
-        with st.container(border=True):
-            st.markdown("**Fluid properties**")
-
-            st.selectbox(
-                "Fluid",
-                ["Water", "Custom"],
-                key="fluid_mode"
-            )
-
-            if st.session_state.fluid_mode == "Water":
-
-                temperature = st.number_input(
-                    f"Water temperature ({t_unit})",
-                    min_value=0.0 if system == "SI" else 32.0,
-                    max_value=100.0 if system == "SI" else 212.0,
-                    step=1.0,
-                    key="temperature"
-                )
-
-                if system == "SI":
-                    temp_c = temperature
-                else:
-                    temp_c = (temperature - 32) * 5 / 9
-
-                rho_si = interpolate(temp_c, water_temps, water_density)
-                mu_si = interpolate(temp_c, water_temps, water_viscosity)
-
-                if system == "SI":
-                    rho_display = rho_si
-                    mu_display = mu_si
-                else:
-                    rho_display = rho_si / 16.018463
-                    mu_display = mu_si / 1.488164
-
-                p1, p2 = st.columns(2)
-
-                with p1:
-                    st.metric("Density", f"{rho_display:.4f}")
-                    st.caption(rho_unit)
-
-                with p2:
-                    st.metric("Viscosity", f"{mu_display:.6f}")
-                    st.caption(mu_unit)
-
-            else:
-                rho_display = st.number_input(
-                    f"Density ({rho_unit})",
-                    min_value=0.000001,
-                    format="%.5f",
-                    key="density"
-                )
-
-                mu_display = st.number_input(
-                    f"Viscosity ({mu_unit})",
-                    min_value=0.000000001,
-                    format="%.8f",
-                    key="viscosity"
-                )
-
-                if system == "SI":
-                    rho_si = rho_display
-                    mu_si = mu_display
-                else:
-                    rho_si = rho_display * 16.018463
-                    mu_si = mu_display * 1.488164
-
-    # Calculation
-
-    if system == "SI":
-        diameter_si = diameter
-        velocity_si = velocity
-    else:
-        diameter_si = diameter * 0.0254
-        velocity_si = velocity * 0.3048
-
-    valid = (
-        diameter_si > 0
-        and velocity_si > 0
-        and rho_si > 0
-        and mu_si > 0
+    st.markdown(
+        """
+        <div class="result-card">
+            <div class="result-label">REYNOLDS NUMBER</div>
+            <div class="result-number">—</div>
+            <div class="small-muted">
+                Enter the required values above to calculate.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    if valid:
-        reynolds = rho_si * velocity_si * diameter_si / mu_si
+    st.markdown(
+        """
+        <div class="result-card">
+            <div class="result-label">FLOW REGIME</div>
+            <div class="result-regime">—</div>
+            <div class="small-muted">
+                The flow classification will appear here.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-        if reynolds < 2300:
-            regime = "Laminar"
-            regime_range = "Re < 2,300"
-            description = "Smooth, orderly fluid motion."
-        elif reynolds <= 4000:
-            regime = "Transitional"
-            regime_range = "2,300–4,000"
-            description = "Flow is in the transition region."
-        else:
-            regime = "Turbulent"
-            regime_range = "Re > 4,000"
-            description = "Irregular flow with increased mixing."
 
-    else:
-        reynolds = 0
-        regime = "Invalid inputs"
-        regime_range = "Check your values"
-        description = ""
+# --------------------------------------------------
+# FOOTER
+# --------------------------------------------------
 
-    st.divider()
-    st.markdown("### Calculation results")
+st.divider()
 
-    if valid:
-        r1, r2 = st.columns([1.5, 1])
-
-        with r1:
-            with st.container(border=True):
-                st.markdown(
-                    '<div class="result-label">REYNOLDS NUMBER</div>',
-                    unsafe_allow_html=True
-                )
-                st.markdown(
-                    f'<div class="result-number">{reynolds:,.2f}</div>',
-                    unsafe_allow_html=True
-                )
-
-        with r2:
-            with st.container(border=True):
-                st.markdown("**FLOW CLASSIFICATION**")
-                st.subheader(regime)
-                st.caption(regime_range)
-                st.caption(description)
-
-        with st.expander("View calculation details"):
-            st.latex(r"Re = \frac{\rho V D}{\mu}")
-
-            st.write(f"Density: {rho_si:.6f} kg/m³")
-            st.write(f"Velocity: {velocity_si:.6f} m/s")
-            st.write(f"Diameter: {diameter_si:.6f} m")
-            st.write(f"Viscosity: {mu_si:.9f} Pa·s")
-
-            st.latex(
-                rf"Re = \frac{{({rho_si:.4f})({velocity_si:.4f})({diameter_si:.6f})}}{{{mu_si:.9f}}}"
-            )
-            st.latex(rf"Re = {reynolds:,.2f}")
-
-    else:
-        st.warning("Check your input values.")
-
-    st.caption("RCulator | Reynolds Number Calculator | Chemical Engineering")
+st.markdown(
+    """
+    <div style="text-align:center; padding:10px 0;">
+        <div class="small-muted">
+            RCulator | Reynolds Number Calculator
+        </div>
+        <div class="small-muted">
+            A Chemical Engineering Project
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
