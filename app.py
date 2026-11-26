@@ -1,8 +1,8 @@
 
 import math
+import streamlit as st
 import base64
 from pathlib import Path
-import streamlit as st
 
 # =========================================================
 # PAGE CONFIGURATION
@@ -188,7 +188,7 @@ st.markdown(
 
     html {{
         scroll-behavior: smooth;
-        scroll-padding-top: 1rem;
+        scroll-padding-top: 20px;
     }}
 
     .stApp {{
@@ -356,13 +356,13 @@ st.markdown(
     }}
 
     /* =====================================================
-       CLICKABLE LANDING PAGE LOGO
+       CLICKABLE LOGO AND TAP PROMPT
        ===================================================== */
 
-    .landing-header {{
+    .logo-container {{
         text-align: center;
-        padding-top: 1rem;
-        padding-bottom: 0.5rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.8rem;
     }}
 
     .logo-link {{
@@ -371,7 +371,7 @@ st.markdown(
         align-items: center;
         text-decoration: none !important;
         cursor: pointer;
-        gap: 0.65rem;
+        gap: 0.5rem;
     }}
 
     .logo-link img {{
@@ -384,30 +384,19 @@ st.markdown(
 
     .logo-link:hover img {{
         transform: scale(1.04);
-        opacity: 0.88;
+        opacity: 0.9;
     }}
 
     .tap-prompt {{
         color: {accent} !important;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 700;
         letter-spacing: 2px;
-        margin-top: 0.25rem;
-        animation: tapPulse 1.8s ease-in-out infinite;
+        transition: opacity 0.2s ease;
     }}
 
-    @keyframes tapPulse {{
-        0%, 100% {{
-            opacity: 1;
-        }}
-        50% {{
-            opacity: 0.55;
-        }}
-    }}
-
-    .landing-title {{
-        text-align: center;
-        margin-top: 0.9rem;
+    .logo-link:hover .tap-prompt {{
+        opacity: 0.7;
     }}
 
     </style>
@@ -545,50 +534,49 @@ def reset_inputs():
 
 
 # =========================================================
-# HEADER / LANDING SCREEN
+# HEADER
 # =========================================================
 
-logo_path = Path("assets/logo.png")
+logo_path = Path(__file__).parent / "assets" / "logo.png"
 
-if not logo_path.exists():
-    st.error(
-        "Logo not found. Please check that assets/logo.png exists "
-        "inside your project folder."
-    )
-else:
+if logo_path.exists():
+
     logo_base64 = base64.b64encode(
         logo_path.read_bytes()
     ).decode("utf-8")
 
     st.markdown(
         f"""
-        <div class="landing-header">
-
-            <a href="#main-content" class="logo-link">
-
+        <div class="logo-container">
+            <a href="#input-parameters" class="logo-link">
                 <img
                     src="data:image/png;base64,{logo_base64}"
                     alt="RCulator Logo"
                 >
-
                 <span class="tap-prompt">
-                    TAP TO CONTINUE
+                    TAP TO CONTINUE ↓
                 </span>
-
             </a>
-
-        </div>
-
-        <div class="landing-title">
-            <div class="main-title">RCulator</div>
-
-            <div class="subtitle">
-                Reynolds Number Calculator | Chemical Engineering
-            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
+
+else:
+    st.error("Logo not found. Check your assets/logo.png file.")
+
+# Centered app name and subtitle
+st.markdown(
+    f"""
+    <div style="text-align: center;">
+        <div class="main-title">RCulator</div>
+        <div class="subtitle">
+            Reynolds Number Calculator | Chemical Engineering
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.write("")
 
@@ -608,15 +596,6 @@ with mode_col:
     )
 
 st.markdown("---")
-
-# =========================================================
-# MAIN CALCULATOR ANCHOR
-# =========================================================
-
-st.markdown(
-    '<div id="main-content"></div>',
-    unsafe_allow_html=True
-)
 
 # =========================================================
 # SETTINGS
@@ -643,6 +622,12 @@ with reset_col:
 # =========================================================
 # INPUT SECTION
 # =========================================================
+
+# Scroll destination for the clickable logo
+st.markdown(
+    '<div id="input-parameters"></div>',
+    unsafe_allow_html=True
+)
 
 st.markdown(
     '<div class="section-title">01 | Input Parameters</div>',
