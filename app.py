@@ -1,5 +1,7 @@
 
 import math
+import base64
+from pathlib import Path
 import streamlit as st
 
 # =========================================================
@@ -184,6 +186,11 @@ st.markdown(
         font-family: 'DM Sans', sans-serif;
     }}
 
+    html {{
+        scroll-behavior: smooth;
+        scroll-padding-top: 1rem;
+    }}
+
     .stApp {{
         background-color: {bg};
         color: {text};
@@ -347,6 +354,62 @@ st.markdown(
         font-size: 0.78rem;
         padding-top: 1.5rem;
     }}
+
+    /* =====================================================
+       CLICKABLE LANDING PAGE LOGO
+       ===================================================== */
+
+    .landing-header {{
+        text-align: center;
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+    }}
+
+    .logo-link {{
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none !important;
+        cursor: pointer;
+        gap: 0.65rem;
+    }}
+
+    .logo-link img {{
+        display: block;
+        width: 180px;
+        max-width: 65vw;
+        height: auto;
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }}
+
+    .logo-link:hover img {{
+        transform: scale(1.04);
+        opacity: 0.88;
+    }}
+
+    .tap-prompt {{
+        color: {accent} !important;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-top: 0.25rem;
+        animation: tapPulse 1.8s ease-in-out infinite;
+    }}
+
+    @keyframes tapPulse {{
+        0%, 100% {{
+            opacity: 1;
+        }}
+        50% {{
+            opacity: 0.55;
+        }}
+    }}
+
+    .landing-title {{
+        text-align: center;
+        margin-top: 0.9rem;
+    }}
+
     </style>
     """,
     unsafe_allow_html=True
@@ -482,30 +545,50 @@ def reset_inputs():
 
 
 # =========================================================
-# HEADER
+# HEADER / LANDING SCREEN
 # =========================================================
 
-# Centered logo above the app name
-logo_col = st.columns([1, 2, 1])[1]
+logo_path = Path("assets/logo.png")
 
-with logo_col:
-    st.image(
-        "assets/logo.png",
-        use_container_width=True
+if not logo_path.exists():
+    st.error(
+        "Logo not found. Please check that assets/logo.png exists "
+        "inside your project folder."
     )
+else:
+    logo_base64 = base64.b64encode(
+        logo_path.read_bytes()
+    ).decode("utf-8")
 
-# Centered app name and subtitle
-st.markdown(
-    """
-    <div style="text-align: center;">
-        <div class="main-title">RCulator</div>
-        <div class="subtitle">
-            Reynolds Number Calculator | Chemical Engineering
+    st.markdown(
+        f"""
+        <div class="landing-header">
+
+            <a href="#main-content" class="logo-link">
+
+                <img
+                    src="data:image/png;base64,{logo_base64}"
+                    alt="RCulator Logo"
+                >
+
+                <span class="tap-prompt">
+                    TAP TO CONTINUE
+                </span>
+
+            </a>
+
         </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
+        <div class="landing-title">
+            <div class="main-title">RCulator</div>
+
+            <div class="subtitle">
+                Reynolds Number Calculator | Chemical Engineering
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 st.write("")
 
@@ -525,6 +608,15 @@ with mode_col:
     )
 
 st.markdown("---")
+
+# =========================================================
+# MAIN CALCULATOR ANCHOR
+# =========================================================
+
+st.markdown(
+    '<div id="main-content"></div>',
+    unsafe_allow_html=True
+)
 
 # =========================================================
 # SETTINGS
