@@ -485,37 +485,44 @@ def reset_inputs():
 # HEADER
 # =========================================================
 
-header_left, header_right = st.columns([3, 1])
+# Centered logo above the app name
+logo_col = st.columns([1, 2, 1])[1]
 
-with header_left:
-    st.markdown(
-        """
-        <div>
-            <div class="main-title">RCulator</div>
-            <div class="subtitle">
-                Reynolds Number Calculator | Chemical Engineering
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+with logo_col:
+    st.image(
+        "assets/logo.png",
+        use_container_width=True
     )
 
-with header_right:
-    st.write("")
+# Centered app name and subtitle
+st.markdown(
+    """
+    <div style="text-align: center;">
+        <div class="main-title">RCulator</div>
+        <div class="subtitle">
+            Reynolds Number Calculator | Chemical Engineering
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-    dark_col, mode_col = st.columns(2)
+st.write("")
 
-    with dark_col:
-        st.toggle(
-            "Dark Mode",
-            key="dark_mode"
-        )
+# Display settings underneath the centered header
+dark_col, mode_col = st.columns(2)
 
-    with mode_col:
-        st.toggle(
-            "Simple Mode",
-            key="simple_mode"
-        )
+with dark_col:
+    st.toggle(
+        "Dark Mode",
+        key="dark_mode"
+    )
+
+with mode_col:
+    st.toggle(
+        "Simple Mode",
+        key="simple_mode"
+    )
 
 st.markdown("---")
 
