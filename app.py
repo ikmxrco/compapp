@@ -2,10 +2,6 @@ import math
 import streamlit as st
 from pathlib import Path
 
-# ==========================================================
-# RCULATOR | REYNOLDS NUMBER CALCULATOR
-# ==========================================================
-
 st.set_page_config(
     page_title="RCulator | Reynolds Number Calculator",
     page_icon="",
@@ -21,106 +17,26 @@ LOGO_PATH = BASE_DIR / "assets" / "logo.png"
 # ==========================================================
 
 FLUIDS = {
-    "Acetic acid": {
-        "formula": "C2H4O2", "MW": 60.052,
-        "d": (1.4486, 0.25892, 591.95, 0.2529, 0),
-        "v": (-9.03, 1212.3, -0.322, 0, 0)
-    },
-    "Acetone": {
-        "formula": "C3H6O", "MW": 58.07914,
-        "d": (1.2332, 0.25886, 508.2, 0.2913, 0),
-        "v": (-14.918, 1023.4, 0.5961, 0, 0)
-    },
-    "Benzene": {
-        "formula": "C6H6", "MW": 78.11184,
-        "d": (1.0259, 0.26666, 562.05, 0.28394, 0),
-        "v": (7.5117, 294.68, -2.794, 0, 0)
-    },
-    "Butane": {
-        "formula": "C4H10", "MW": 58.1222,
-        "d": (1.0677, 0.27188, 425.12, 0.28688, 0),
-        "v": (-7.2471, 534.82, -0.57469, -4.66e-27, 10)
-    },
-    "Carbon tetrachloride": {
-        "formula": "CCl4", "MW": 153.8227,
-        "d": (0.99835, 0.274, 556.35, 0.287, 0),
-        "v": (-8.0738, 1121.1, -0.4726, 0, 0)
-    },
-    "Chlorobenzene": {
-        "formula": "C6H5Cl", "MW": 112.5569,
-        "d": (0.8711, 0.26805, 632.35, 0.2799, 0),
-        "v": (0.15772, 540.5, -1.6075, 0, 0)
-    },
-    "Chloroform": {
-        "formula": "CHCl3", "MW": 119.37764,
-        "d": (1.0841, 0.2581, 536.4, 0.2741, 0),
-        "v": (-14.109, 1049.2, 0.5377, 0, 0)
-    },
-    "Cyclohexane": {
-        "formula": "C6H12", "MW": 84.15948,
-        "d": (0.88998, 0.27376, 553.8, 0.28571, 0),
-        "v": (-33.763, 2497.2, 3.2236, 0, 0)
-    },
-    "Diethyl ether": {
-        "formula": "C4H10O", "MW": 74.1216,
-        "d": (0.9554, 0.26847, 466.7, 0.2814, 0),
-        "v": (10.197, -63.8, -3.226, 0, 0)
-    },
-    "Ethanol": {
-        "formula": "C2H6O", "MW": 46.06844,
-        "d": (1.6288, 0.27469, 514, 0.23178, 0),
-        "v": (7.875, 781.98, -3.0418, 0, 0)
-    },
-    "Ethyl acetate": {
-        "formula": "C4H8O2", "MW": 88.10512,
-        "d": (0.8996, 0.25856, 523.3, 0.278, 0),
-        "v": (14.354, -154.6, -3.7887, 0, 0)
-    },
-    "Ethylene glycol": {
-        "formula": "C2H6O2", "MW": 62.06784,
-        "d": (1.315, 0.25125, 720, 0.21868, 0),
-        "v": (-290.36, 14251, 42.486, -0.000040369, 2)
-    },
-    "Heptane": {
-        "formula": "C7H16", "MW": 100.20194,
-        "d": (0.61259, 0.26211, 540.2, 0.28141, 0),
-        "v": (-98.159, 3592.6, 14.197, -0.000029555, 2)
-    },
-    "Hexane": {
-        "formula": "C6H14", "MW": 86.17536,
-        "d": (0.70824, 0.26411, 507.6, 0.27537, 0),
-        "v": (-56.569, 2140.5, 7.5175, -0.000017676, 2)
-    },
-    "Methanol": {
-        "formula": "CH4O", "MW": 32.04186,
-        "d": (2.3267, 0.27073, 512.5, 0.24713, 0),
-        "v": (-25.317, 1789.2, 2.069, 0, 0)
-    },
-    "Octane": {
-        "formula": "C8H18", "MW": 114.22852,
-        "d": (0.5266, 0.25693, 568.7, 0.28571, 0),
-        "v": (-98.805, 3905.5, 14.103, -0.000025112, 2)
-    },
-    "1-Propanol": {
-        "formula": "C3H8O", "MW": 60.09502,
-        "d": (1.2457, 0.27281, 536.8, 0.23994, 0),
-        "v": (23.467, 116.07, -5.3372, 2880100000, -4.0267)
-    },
-    "2-Propanol": {
-        "formula": "C3H8O", "MW": 60.095,
-        "d": (1.1799, 0.2644, 508.3, 0.24653, 0),
-        "v": (-8.8918, 2357.6, -0.91376, 0, 0)
-    },
-    "Toluene": {
-        "formula": "C7H8", "MW": 92.13842,
-        "d": (0.8792, 0.27136, 591.75, 0.29241, 0),
-        "v": (-226.08, 6805.7, 37.542, -0.060853, 1)
-    },
-    "Water": {
-        "formula": "H2O", "MW": 18.01528,
-        "d": (-13.851, 0.64038, -0.0019124, 0.0000018211, 0),
-        "v": (-52.843, 3703.6, 5.866, -5.88e-29, 10)
-    }
+    "Acetic acid": {"formula": "C2H4O2", "MW": 60.052, "d": (1.4486, 0.25892, 591.95, 0.2529, 0), "v": (-9.03, 1212.3, -0.322, 0, 0)},
+    "Acetone": {"formula": "C3H6O", "MW": 58.07914, "d": (1.2332, 0.25886, 508.2, 0.2913, 0), "v": (-14.918, 1023.4, 0.5961, 0, 0)},
+    "Benzene": {"formula": "C6H6", "MW": 78.11184, "d": (1.0259, 0.26666, 562.05, 0.28394, 0), "v": (7.5117, 294.68, -2.794, 0, 0)},
+    "Butane": {"formula": "C4H10", "MW": 58.1222, "d": (1.0677, 0.27188, 425.12, 0.28688, 0), "v": (-7.2471, 534.82, -0.57469, -4.66e-27, 10)},
+    "Carbon tetrachloride": {"formula": "CCl4", "MW": 153.8227, "d": (0.99835, 0.274, 556.35, 0.287, 0), "v": (-8.0738, 1121.1, -0.4726, 0, 0)},
+    "Chlorobenzene": {"formula": "C6H5Cl", "MW": 112.5569, "d": (0.8711, 0.26805, 632.35, 0.2799, 0), "v": (0.15772, 540.5, -1.6075, 0, 0)},
+    "Chloroform": {"formula": "CHCl3", "MW": 119.37764, "d": (1.0841, 0.2581, 536.4, 0.2741, 0), "v": (-14.109, 1049.2, 0.5377, 0, 0)},
+    "Cyclohexane": {"formula": "C6H12", "MW": 84.15948, "d": (0.88998, 0.27376, 553.8, 0.28571, 0), "v": (-33.763, 2497.2, 3.2236, 0, 0)},
+    "Diethyl ether": {"formula": "C4H10O", "MW": 74.1216, "d": (0.9554, 0.26847, 466.7, 0.2814, 0), "v": (10.197, -63.8, -3.226, 0, 0)},
+    "Ethanol": {"formula": "C2H6O", "MW": 46.06844, "d": (1.6288, 0.27469, 514, 0.23178, 0), "v": (7.875, 781.98, -3.0418, 0, 0)},
+    "Ethyl acetate": {"formula": "C4H8O2", "MW": 88.10512, "d": (0.8996, 0.25856, 523.3, 0.278, 0), "v": (14.354, -154.6, -3.7887, 0, 0)},
+    "Ethylene glycol": {"formula": "C2H6O2", "MW": 62.06784, "d": (1.315, 0.25125, 720, 0.21868, 0), "v": (-290.36, 14251, 42.486, -0.000040369, 2)},
+    "Heptane": {"formula": "C7H16", "MW": 100.20194, "d": (0.61259, 0.26211, 540.2, 0.28141, 0), "v": (-98.159, 3592.6, 14.197, -0.000029555, 2)},
+    "Hexane": {"formula": "C6H14", "MW": 86.17536, "d": (0.70824, 0.26411, 507.6, 0.27537, 0), "v": (-56.569, 2140.5, 7.5175, -0.000017676, 2)},
+    "Methanol": {"formula": "CH4O", "MW": 32.04186, "d": (2.3267, 0.27073, 512.5, 0.24713, 0), "v": (-25.317, 1789.2, 2.069, 0, 0)},
+    "Octane": {"formula": "C8H18", "MW": 114.22852, "d": (0.5266, 0.25693, 568.7, 0.28571, 0), "v": (-98.805, 3905.5, 14.103, -0.000025112, 2)},
+    "1-Propanol": {"formula": "C3H8O", "MW": 60.09502, "d": (1.2457, 0.27281, 536.8, 0.23994, 0), "v": (23.467, 116.07, -5.3372, 2880100000, -4.0267)},
+    "2-Propanol": {"formula": "C3H8O", "MW": 60.095, "d": (1.1799, 0.2644, 508.3, 0.24653, 0), "v": (-8.8918, 2357.6, -0.91376, 0, 0)},
+    "Toluene": {"formula": "C7H8", "MW": 92.13842, "d": (0.8792, 0.27136, 591.75, 0.29241, 0), "v": (-226.08, 6805.7, 37.542, -0.060853, 1)},
+    "Water": {"formula": "H2O", "MW": 18.01528, "d": (-13.851, 0.64038, -0.0019124, 0.0000018211, 0), "v": (-52.843, 3703.6, 5.866, -5.88e-29, 10)}
 }
 
 # ==========================================================
@@ -136,51 +52,118 @@ defaults = {
     "diameter": None,
     "velocity": None,
     "temperature": None,
+    "diameter_unit": "m",
+    "velocity_unit": "m/s",
+    "temperature_unit": "°C",
+    "previous_diameter_unit": "m",
+    "previous_velocity_unit": "m/s",
+    "previous_temperature_unit": "°C",
 }
 
 for key, value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-
 # ==========================================================
 # UNIT CONVERSION
 # ==========================================================
 
-def change_units():
-    old = st.session_state.previous_system
-    new = st.session_state.system
+LENGTH_TO_M = {
+    "m": 1.0,
+    "cm": 0.01,
+    "ft": 0.3048,
+    "in": 0.0254
+}
 
-    if old == new:
+VELOCITY_TO_M_S = {
+    "m/s": 1.0,
+    "cm/s": 0.01,
+    "ft/s": 0.3048,
+    "in/s": 0.0254
+}
+
+
+def temperature_to_kelvin(value, unit):
+    if unit == "K":
+        return value
+    if unit == "°C":
+        return value + 273.15
+    return (value + 459.67) * 5 / 9
+
+
+def kelvin_to_temperature(value, unit):
+    if unit == "K":
+        return value
+    if unit == "°C":
+        return value - 273.15
+    return value * 9 / 5 - 459.67
+
+
+def change_measurement_unit(value_key, unit_key, previous_key, factors):
+    old_unit = st.session_state[previous_key]
+    new_unit = st.session_state[unit_key]
+    value = st.session_state[value_key]
+
+    if value is not None and old_unit != new_unit:
+        value_si = value * factors[old_unit]
+        st.session_state[value_key] = value_si / factors[new_unit]
+
+    st.session_state[previous_key] = new_unit
+
+
+def change_temperature_unit():
+    old_unit = st.session_state.previous_temperature_unit
+    new_unit = st.session_state.temperature_unit
+    value = st.session_state.temperature
+
+    if value is not None and old_unit != new_unit:
+        value_k = temperature_to_kelvin(value, old_unit)
+        st.session_state.temperature = kelvin_to_temperature(
+            value_k, new_unit
+        )
+
+    st.session_state.previous_temperature_unit = new_unit
+
+
+def change_units():
+    old_system = st.session_state.previous_system
+    new_system = st.session_state.system
+
+    if old_system == new_system:
         return
 
-    if old == "SI" and new == "English":
+    old_d_unit = st.session_state.diameter_unit
+    old_v_unit = st.session_state.velocity_unit
+    old_t_unit = st.session_state.temperature_unit
 
-        if st.session_state.diameter is not None:
-            st.session_state.diameter /= 0.3048
+    new_d_unit = "m" if new_system == "SI" else "ft"
+    new_v_unit = "m/s" if new_system == "SI" else "ft/s"
+    new_t_unit = "°C" if new_system == "SI" else "°F"
 
-        if st.session_state.velocity is not None:
-            st.session_state.velocity /= 0.3048
+    if st.session_state.diameter is not None:
+        si_value = st.session_state.diameter * LENGTH_TO_M[old_d_unit]
+        st.session_state.diameter = si_value / LENGTH_TO_M[new_d_unit]
 
-        if st.session_state.temperature is not None:
-            st.session_state.temperature = (
-                st.session_state.temperature * 9 / 5
-            ) + 32
+    if st.session_state.velocity is not None:
+        si_value = st.session_state.velocity * VELOCITY_TO_M_S[old_v_unit]
+        st.session_state.velocity = si_value / VELOCITY_TO_M_S[new_v_unit]
 
-    elif old == "English" and new == "SI":
+    if st.session_state.temperature is not None:
+        kelvin = temperature_to_kelvin(
+            st.session_state.temperature, old_t_unit
+        )
+        st.session_state.temperature = kelvin_to_temperature(
+            kelvin, new_t_unit
+        )
 
-        if st.session_state.diameter is not None:
-            st.session_state.diameter *= 0.3048
+    st.session_state.diameter_unit = new_d_unit
+    st.session_state.velocity_unit = new_v_unit
+    st.session_state.temperature_unit = new_t_unit
 
-        if st.session_state.velocity is not None:
-            st.session_state.velocity *= 0.3048
-
-        if st.session_state.temperature is not None:
-            st.session_state.temperature = (
-                st.session_state.temperature - 32
-            ) * 5 / 9
-
-    st.session_state.previous_system = new
+    st.session_state.previous_diameter_unit = new_d_unit
+    st.session_state.previous_velocity_unit = new_v_unit
+    st.session_state.previous_temperature_unit = new_t_unit
+    st.session_state.previous_system = new_system
 
 
 def reset_inputs():
@@ -269,7 +252,6 @@ def calculate_properties(fluid, temperature_k):
     )
 
     return molar_density, density, viscosity
-
 
 # ==========================================================
 # THEME
@@ -417,15 +399,13 @@ st.markdown(
         color: {text};
     }}
 
-    /* DISABLE TYPING AND SEARCH IN DROPDOWNS */
+    /* Hide typing/search field in dropdowns */
     div[data-baseweb="select"] input {{
-        display: none !important;
-        visibility: hidden !important;
-        width: 0 !important;
-        min-width: 0 !important;
-        height: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
+        opacity: 0 !important;
+        width: 1px !important;
+        min-width: 1px !important;
+        position: absolute !important;
+        pointer-events: none !important;
     }}
 
     [data-testid="stMetric"] {{
@@ -487,10 +467,8 @@ with header1:
     )
 
     with logo_col:
-
         if LOGO_PATH.exists():
             st.image(str(LOGO_PATH), width=65)
-
         else:
             st.markdown(
                 f'<h2 style="color:{accent};">R</h2>',
@@ -498,7 +476,6 @@ with header1:
             )
 
     with title_col:
-
         st.markdown(
             '<div class="brand">CHEMICAL ENGINEERING TOOL</div>',
             unsafe_allow_html=True
@@ -513,7 +490,6 @@ with header1:
 
 
 with header2:
-
     st.selectbox(
         "Unit System",
         ["SI", "English"],
@@ -521,17 +497,13 @@ with header2:
         on_change=change_units
     )
 
-
 with header3:
-
     st.toggle(
         "Simple Mode",
         key="simple_mode"
     )
 
-
 with header4:
-
     st.toggle(
         "Dark Mode",
         key="dark_mode"
@@ -542,24 +514,46 @@ st.divider()
 
 
 # ==========================================================
-# UNIT LABELS
+# UNIT OPTIONS
 # ==========================================================
 
 if st.session_state.system == "SI":
 
-    diameter_unit = "m"
-    velocity_unit = "m/s"
-    temperature_unit = "°C"
+    diameter_options = ["m", "cm"]
+    velocity_options = ["m/s", "cm/s"]
+    temperature_options = ["°C", "K"]
+
     density_unit = "kg/m³"
     viscosity_unit = "Pa·s"
 
 else:
 
-    diameter_unit = "ft"
-    velocity_unit = "ft/s"
-    temperature_unit = "°F"
+    diameter_options = ["ft", "in"]
+    velocity_options = ["ft/s", "in/s"]
+    temperature_options = ["°F", "K"]
+
     density_unit = "lbm/ft³"
     viscosity_unit = "lbm/(ft·s)"
+
+
+# Ensure selected units belong to current system
+
+if st.session_state.diameter_unit not in diameter_options:
+    st.session_state.diameter_unit = diameter_options[0]
+    st.session_state.previous_diameter_unit = diameter_options[0]
+
+if st.session_state.velocity_unit not in velocity_options:
+    st.session_state.velocity_unit = velocity_options[0]
+    st.session_state.previous_velocity_unit = velocity_options[0]
+
+if st.session_state.temperature_unit not in temperature_options:
+    st.session_state.temperature_unit = temperature_options[0]
+    st.session_state.previous_temperature_unit = temperature_options[0]
+
+
+diameter_unit = st.session_state.diameter_unit
+velocity_unit = st.session_state.velocity_unit
+temperature_unit = st.session_state.temperature_unit
 
 
 # ==========================================================
@@ -584,8 +578,21 @@ with input_left:
 
     with c1:
 
+        st.selectbox(
+            "Diameter Unit",
+            diameter_options,
+            key="diameter_unit",
+            on_change=change_measurement_unit,
+            args=(
+                "diameter",
+                "diameter_unit",
+                "previous_diameter_unit",
+                LENGTH_TO_M
+            )
+        )
+
         st.number_input(
-            f"Pipe Diameter ({diameter_unit})",
+            f"Pipe Diameter ({st.session_state.diameter_unit})",
             min_value=0.0,
             value=None,
             key="diameter",
@@ -595,8 +602,21 @@ with input_left:
 
     with c2:
 
+        st.selectbox(
+            "Velocity Unit",
+            velocity_options,
+            key="velocity_unit",
+            on_change=change_measurement_unit,
+            args=(
+                "velocity",
+                "velocity_unit",
+                "previous_velocity_unit",
+                VELOCITY_TO_M_S
+            )
+        )
+
         st.number_input(
-            f"Flow Velocity ({velocity_unit})",
+            f"Flow Velocity ({st.session_state.velocity_unit})",
             min_value=0.0,
             value=None,
             key="velocity",
@@ -604,13 +624,26 @@ with input_left:
             format="%.6f"
         )
 
+    st.selectbox(
+        "Temperature Unit",
+        temperature_options,
+        key="temperature_unit",
+        on_change=change_temperature_unit
+    )
+
+    temperature_minimum = (
+        0.0 if st.session_state.temperature_unit == "K"
+        else -273.15 if st.session_state.temperature_unit == "°C"
+        else -459.67
+    )
+
     st.number_input(
-        f"Fluid Temperature ({temperature_unit})",
+        f"Fluid Temperature ({st.session_state.temperature_unit})",
         value=None,
         key="temperature",
         placeholder="Enter temperature",
         format="%.2f",
-        min_value=-273.15 if st.session_state.system == "SI" else -459.67
+        min_value=temperature_minimum
     )
 
 
@@ -618,7 +651,6 @@ with input_right:
 
     st.markdown("#### Fluid Selection")
 
-    # NON-TYPEABLE, SCROLLABLE DROPDOWN
     fluid = st.selectbox(
         "Select Fluid",
         list(FLUIDS.keys()),
@@ -652,23 +684,20 @@ with input_right:
         on_click=reset_inputs
     )
 
-
 # ==========================================================
 # CONVERT TEMPERATURE TO KELVIN
 # ==========================================================
 
 temperature = st.session_state.temperature
+
 temperature_k = None
 
 if temperature is not None:
 
-    if st.session_state.system == "SI":
-        temperature_k = temperature + 273.15
-
-    else:
-        temperature_k = (
-            temperature + 459.67
-        ) * 5 / 9
+    temperature_k = temperature_to_kelvin(
+        temperature,
+        st.session_state.temperature_unit
+    )
 
 
 # ==========================================================
@@ -809,17 +838,15 @@ diameter_m = None
 velocity_m_s = None
 
 if diameter is not None:
-
     diameter_m = (
-        diameter if st.session_state.system == "SI"
-        else diameter * 0.3048
+        diameter
+        * LENGTH_TO_M[st.session_state.diameter_unit]
     )
 
 if velocity is not None:
-
     velocity_m_s = (
-        velocity if st.session_state.system == "SI"
-        else velocity * 0.3048
+        velocity
+        * VELOCITY_TO_M_S[st.session_state.velocity_unit]
     )
 
 
@@ -1047,7 +1074,6 @@ else:
     elif property_error:
         missing.append("valid fluid properties")
 
-
     st.markdown(
         """
         <div class="panel">
@@ -1094,6 +1120,15 @@ with st.expander("About RCulator and calculation assumptions"):
         - English display uses lbm/ft³ and lbm/(ft·s).
         - Calculations are internally performed using SI units.
 
+        **Available input units**
+
+        - SI diameter: m or cm.
+        - SI velocity: m/s or cm/s.
+        - SI temperature: °C or K.
+        - English diameter: ft or in.
+        - English velocity: ft/s or in/s.
+        - English temperature: °F or K.
+
         **Flow classification**
 
         - Laminar: Re < 2,300
@@ -1102,8 +1137,6 @@ with st.expander("About RCulator and calculation assumptions"):
 
         **Important:** Correlations must only be used within
         their published temperature and phase validity ranges.
-        These ranges have not yet been supplied with the
-        coefficient tables.
         """
     )
 
